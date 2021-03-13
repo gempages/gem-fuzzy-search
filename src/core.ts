@@ -22,9 +22,9 @@ class GemFuzzySearch implements TypeGemFuzzySearch {
   public gramSizeLower: number;
   public gramSizeUpper: number;
   public useLevenshtein: boolean;
-  public exactSet: any;
-  public matchDict: any;
-  public items: any;
+  public exactSet: any = {};
+  public matchDict: any = {};
+  public items: any = {};
   public arr: Array<any>;
 
   constructor(arr: Array<any> = [], useLevenshtein?: boolean, gramSizeLower: number = 2, gramSizeUpper: number = 3) {
@@ -44,7 +44,7 @@ class GemFuzzySearch implements TypeGemFuzzySearch {
     }
   }
 
-  public get(value: string, defaultValue: string, minMatchScore: number) {
+  public get(value: string, defaultValue?: string, minMatchScore?: number) {
     // check for value in set, returning defaultValue or null if none found
     if (minMatchScore === undefined) {
       minMatchScore = 0.33;
