@@ -9,9 +9,6 @@ import { TypeGemFuzzySearch } from "./types";
 import { _distance, _iterateGrams, _gramCounter, normalizeStr, isEmptyObject, sortDescending } from "./helpers";
 
 /**
- * Fuzzy Search, see more example here:
- * https://glench.github.io/fuzzyset.js/
- * https://github.com/Glench/fuzzyset.js
  * @param arr An array of strings to initialize the data structure with
  * @param useLevenshtein Whether or not to use the levenshtein distance to determine the match scoring. Default: True
  * @param gramSizeLower The lower bound of gram sizes to use, inclusive (see Theory of operation). Default: 2
