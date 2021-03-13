@@ -5,24 +5,8 @@
  * @Last Modified time: 2020-08-05 17:06:57
  */
 
-
-type TypeFuzzySet = {
-  gramSizeLower: number;
-  gramSizeUpper: number;
-  useLevenshtein: boolean;
-  exactSet: any;
-  matchDict: any;
-  items: any;
-  get?: any;
-  _get?: any;
-  __get?: any;
-  _normalizeStr?: any;
-  add?: any;
-  _add?: any;
-  length?: any;
-  isEmpty?: any;
-  values?: any;
-}
+import { TypeGemFuzzySearch } from "./types";
+import { _distance, _iterateGrams, _gramCounter, normalizeStr, isEmptyObject, sortDescending } from "./helpers";
 
 /**
  * Fuzzy Search, see more example here:
@@ -34,118 +18,33 @@ type TypeFuzzySet = {
  * @param gramSizeUpper ..
  * @returns The upper bound of gram sizes to use, inclusive (see Theory of operation). Default: 3
  */
-const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLower: number, gramSizeUpper: number): any {
-  const fuzzyset: TypeFuzzySet = {
-    gramSizeLower: gramSizeLower || 2,
-    gramSizeUpper: gramSizeUpper || 3,
-    useLevenshtein: typeof useLevenshtein !== "boolean" ? true : useLevenshtein,
-    // define all the object functions and attributes
-    exactSet: {},
-    matchDict: {},
-    items: {}
-  };
+class GemFuzzySearch implements TypeGemFuzzySearch {
+  public gramSizeLower: number;
+  public gramSizeUpper: number;
+  public useLevenshtein: boolean;
+  public exactSet: any;
+  public matchDict: any;
+  public items: any;
+  public arr: Array<any>;
 
-  // default options
-  arr = arr || [];
+  constructor(arr: Array<any> = [], useLevenshtein?: boolean, gramSizeLower: number = 2, gramSizeUpper: number = 3) {
+    this.gramSizeLower = gramSizeLower;
+    this.gramSizeUpper = gramSizeUpper;
+    this.useLevenshtein = typeof useLevenshtein !== "boolean" ? true : useLevenshtein;
+    this.arr = arr;
 
-  /**
-   * helper functions ..
-   * @param str1 ..
-   * @param str2 ..
-   * @returns string
-   */
-  const levenshtein = function (str1: string, str2: string) {
-    const current = Array<any>();
-    let prev,
-      value;
-
-    for (let i = 0; i <= str2.length; i++)
-      for (let j = 0; j <= str1.length; j++) {
-        if (i && j)
-          if (str1.charAt(j - 1) === str2.charAt(i - 1)) value = prev;
-          else value = Math.min(current[j], current[j - 1], prev) + 1;
-        else value = i + j;
-
-        prev = current[j];
-        current[j] = value;
-      }
-
-    return current.pop();
-  };
-
-  /**
-   * return an edit distance from 0 to 1
-   * @param str1 string
-   * @param str2 string
-   * @returns return an edit distance from 0 to 1
-   */
-  const _distance = function (str1: string, str2: string) {
-    if (str1 === null && str2 === null)
-      throw "Trying to compare two null values";
-    if (str1 === null || str2 === null) return 0;
-    str1 = String(str1);
-    str2 = String(str2);
-
-    const distance = levenshtein(str1, str2);
-    if (str1.length > str2.length) {
-      return 1 - distance / str1.length;
-    } else {
-      return 1 - distance / str2.length;
+    // initialization
+    let i = this.gramSizeLower;
+    for (i; i < this.gramSizeUpper + 1; ++i) {
+      this.items[i] = [];
     }
-  };
-  const _nonWordRe = /[^a-zA-Z0-9\u00C0-\u00FF, ]+/g;
-
-  /**
-   * _iterateGrams ..
-   * @param value string
-   * @param gramSize number
-   * @returns array
-   */
-  const _iterateGrams = function (value: string, gramSize: number): Array<string> {
-    gramSize = gramSize || 2;
-    let simplified = "-" + value.toLowerCase().replace(_nonWordRe, "") + "-";
-    const lenDiff = gramSize - simplified.length;
-    const results = [];
-    if (lenDiff > 0) {
-      for (let i = 0; i < lenDiff; ++i) {
-        simplified += "-";
-      }
+    // add all the items to the set
+    for (i = 0; i < arr.length; ++i) {
+      this.add(arr[i]);
     }
-    for (let i = 0; i < simplified.length - gramSize + 1; ++i) {
-      results.push(simplified.slice(i, i + gramSize));
-    }
-    return results;
-  };
+  }
 
-  /**
-   * return an object where key=gram, value=number of occurrences
-   * @param value string
-   * @param gramSize number
-   * @returns object
-   */
-  const _gramCounter = function (value: string, gramSize: number) {
-    gramSize = gramSize || 2;
-    const result = Array<number>();
-    const grams = _iterateGrams(value, gramSize);
-    let i = 0;
-    for (i; i < grams.length; ++i) {
-      if (grams[i] in result) {
-        result[parseInt(grams[i])] += 1;
-      } else {
-        result[parseInt(grams[i])] = 1;
-      }
-    }
-    return result;
-  };
-
-  /**
-   * the main functions
-   * @param value ..
-   * @param defaultValue ..
-   * @param minMatchScore ..
-   * @returns object
-   */
-  fuzzyset.get = function (value: string, defaultValue: string, minMatchScore: number) {
+  public get(value: string, defaultValue: string, minMatchScore: number) {
     // check for value in set, returning defaultValue or null if none found
     if (minMatchScore === undefined) {
       minMatchScore = 0.33;
@@ -155,7 +54,7 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
       return defaultValue;
     }
     return result;
-  };
+  }
 
   /**
    * _get ..
@@ -163,8 +62,8 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
    * @param minMatchScore ..
    * @returns object
    */
-  fuzzyset._get = function (value: string, minMatchScore: number) {
-    let results = [];
+  public _get(value: string, minMatchScore: number) {
+    let results: any[][] | null = [];
     // start with high gram size and if there are no results, go to lower gram sizes
     for (
       let gramSize = this.gramSizeUpper;
@@ -186,8 +85,8 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
    * @param minMatchScore ..
    * @returns object
    */
-  fuzzyset.__get = function (value: string, gramSize: number, minMatchScore: number) {
-    const normalizedValue = this._normalizeStr(value);
+  public __get(value: string, gramSize: number, minMatchScore: number) {
+    const normalizedValue = normalizeStr(value);
     const matches = Array<number>();
     const gramCounts = _gramCounter(normalizedValue, gramSize);
     const items = this.items[gramSize];
@@ -213,19 +112,6 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
       }
     }
 
-    /**
-     * isEmptyObject ..
-     * @param obj .
-     * @returns boolean
-     */
-    function isEmptyObject(obj: Record<string, any>) {
-      for (const prop in obj) {
-        // eslint-disable-next-line no-prototype-builtins
-        if (obj.hasOwnProperty(prop)) return false;
-      }
-      return true;
-    }
-
     if (isEmptyObject(matches)) {
       return null;
     }
@@ -241,21 +127,6 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
         items[matchIndex][1],
       ]);
     }
-    /**
-     * sortDescending
-     * @param a ..
-     * @param b ..
-     * @returns number
-     */
-    const sortDescending = function (a: any, b: any) {
-      if (a[0] < b[0]) {
-        return 1;
-      } else if (a[0] > b[0]) {
-        return -1;
-      } else {
-        return 0;
-      }
-    };
 
     let newResults = [];
 
@@ -290,8 +161,8 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
    * @param value ..
    * @returns void
    */
-  fuzzyset.add = function (value: string) {
-    const normalizedValue = this._normalizeStr(value);
+  public add (value: string) {
+    const normalizedValue = normalizeStr(value);
     if (normalizedValue in this.exactSet) {
       return false;
     }
@@ -308,8 +179,8 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
    * @param gramSize ..
    * @returns void
    */
-  fuzzyset._add = function (value: string, gramSize: number) {
-    const normalizedValue = this._normalizeStr(value),
+  public _add (value: string, gramSize: number) {
+    const normalizedValue = normalizeStr(value),
       items = this.items[gramSize] || [],
       index = items.length;
 
@@ -334,21 +205,10 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
   };
 
   /**
-   * _normalizeStr ..
-   * @param str ..
-   * @returns string
-   */
-  fuzzyset._normalizeStr = function (str: string) {
-    if (Object.prototype.toString.call(str) !== "[object String]")
-      throw "Must use a string as argument to FuzzySet functions";
-    return str.toLowerCase();
-  };
-
-  /**
    * return length of items in set
    * @returns number
    */
-  fuzzyset.length = function () {
+  public length () {
     let count = 0,
       prop;
     for (prop in this.exactSet) {
@@ -364,7 +224,7 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
    * return is set is empty
    * @returns boolean
    */
-  fuzzyset.isEmpty = function () {
+  public isEmpty () {
     for (const prop in this.exactSet) {
       // eslint-disable-next-line no-prototype-builtins
       if (this.exactSet.hasOwnProperty(prop)) {
@@ -378,7 +238,7 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
    * return list of values loaded into set
    * @returns array
    */
-  fuzzyset.values = function () {
+  public values () {
     const values = [];
     let prop;
     for (prop in this.exactSet) {
@@ -389,18 +249,6 @@ const FuzzySet = function (arr: Array<any>, useLevenshtein: boolean, gramSizeLow
     }
     return values;
   };
+}
 
-  // initialization
-  let i = fuzzyset.gramSizeLower;
-  for (i; i < fuzzyset.gramSizeUpper + 1; ++i) {
-    fuzzyset.items[i] = [];
-  }
-  // add all the items to the set
-  for (i = 0; i < arr.length; ++i) {
-    fuzzyset.add(arr[i]);
-  }
-
-  return fuzzyset;
-};
-
-export default FuzzySet;
+export default GemFuzzySearch;

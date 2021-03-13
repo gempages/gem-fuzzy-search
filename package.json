@@ -2,9 +2,9 @@
   "name": "gem-fuzzy-search",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,14 @@
   "bugs": {
     "url": "https://github.com/noragem/gem-fuzzy-search/issues"
   },
-  "homepage": "https://github.com/noragem/gem-fuzzy-search#readme"
+  "homepage": "https://github.com/noragem/gem-fuzzy-search#readme",
+  "devDependencies": {
+    "@babel/preset-env": "^7.13.5",
+    "@types/jest": "^26.0.20",
+    "babel-jest": "^26.6.3",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
+    "jest": "^26.4.2",
+    "ts-jest": "^26.5.2",
+    "typescript": "^4.2.2"
+  }
 }
